@@ -55,5 +55,24 @@ services:
       - ./grpc-api/app:/app/app
       - ./common:/app/common
 
+  graphql-api:
+    build:
+      context: .
+      dockerfile: ./graphql-api/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+    volumes:
+      - ./graphql-api/app:/app/app
+      - ./common:/app/common
+
 volumes:
   postgres_data:
