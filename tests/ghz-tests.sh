@@ -12,7 +12,7 @@ ghz \
   --insecure \
   --total 100 \
   --concurrency 1 \
-  localhost:50051 \
+  ${GRPC_API_URL} \
   --format json > results/grpc/latency_test.json
 
 echo "Тест задержки для gRPC завершен."
@@ -28,7 +28,7 @@ ghz \
   --concurrency 50 \
   --qps 100 \
   --duration 30s \
-  localhost:50051 \
+  ${GRPC_API_URL} \
   --format json > results/grpc/throughput_test.json
 
 echo "Тест пропускной способности для gRPC завершен."
@@ -44,7 +44,7 @@ ghz \
   --concurrency 1 \
   --duration 30s \
   --format json \
-  localhost:50051 > results/grpc/load_test_1vu.json
+  ${GRPC_API_URL} > results/grpc/load_test_1vu.json
 
 # Тест с 10 пользователями
 ghz \
@@ -54,7 +54,7 @@ ghz \
   --concurrency 10 \
   --duration 30s \
   --format json \
-  localhost:50051 > results/grpc/load_test_10vu.json
+  ${GRPC_API_URL} > results/grpc/load_test_10vu.json
 
 # Тест с 50 пользователями
 ghz \
@@ -64,7 +64,7 @@ ghz \
   --concurrency 50 \
   --duration 30s \
   --format json \
-  localhost:50051 > results/grpc/load_test_50vu.json
+  ${GRPC_API_URL} > results/grpc/load_test_50vu.json
 
 echo "Тест поведения под нагрузкой для gRPC завершен."
 
@@ -74,14 +74,14 @@ echo "Запуск теста получения заказов для gRPC..."
 # Сначала создаем тестовые данные - пользователя
 echo "Создание тестового пользователя..."
 USER_ID=$(grpcurl -plaintext -d '{"name": "Test User", "email": "test@example.com"}' \
-  localhost:50051 usersorders.UserService/CreateUser | grep -o '"id": [0-9]*' | grep -o '[0-9]*')
+  ${GRPC_API_URL} usersorders.UserService/CreateUser | grep -o '"id": [0-9]*' | grep -o '[0-9]*')
 
 echo "Создан пользователь с ID: $USER_ID"
 
 # Теперь создаем заказ для этого пользователя
 echo "Создание тестового заказа..."
 grpcurl -plaintext -d "{\"user_id\": $USER_ID, \"product_name\": \"Test Product\", \"price\": 99.99}" \
-  localhost:50051 usersorders.OrderService/CreateOrder
+  ${GRPC_API_URL} usersorders.OrderService/CreateOrder
 
 # Тестируем получение заказов пользователя
 echo "Тестирование получения заказов пользователя..."
@@ -92,7 +92,7 @@ ghz \
   --total 100 \
   --concurrency 10 \
   --data "{\"id\": $USER_ID}" \
-  localhost:50051 \
+  ${GRPC_API_URL} \
   --format json > results/grpc/orders_by_user_test.json
 
 echo "Тест получения заказов для gRPC завершен."

@@ -36,7 +36,7 @@ query {
 
 export default function () {
   // Отправляем минимальный запрос
-  const minimalResponse = http.post('http://localhost:8080/graphql', 
+  const minimalResponse = http.post(`${__ENV.GRAPHQL_API_URL}`, 
     JSON.stringify({ query: minimalQuery }), 
     {
       headers: { 'Content-Type': 'application/json' },
@@ -51,7 +51,7 @@ export default function () {
   minimalQueryDuration.add(minimalResponse.timings.duration);
   
   // Отправляем полный запрос
-  const fullResponse = http.post('http://localhost:8080/graphql', 
+  const fullResponse = http.post(`${__ENV.GRAPHQL_API_URL}`, 
     JSON.stringify({ query: fullQuery }), 
     {
       headers: { 'Content-Type': 'application/json' },

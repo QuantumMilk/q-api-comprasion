@@ -20,7 +20,7 @@ export const options = {
 
 export default function () {
   // Запрос на получение списка пользователей
-  const usersResponse = http.get('http://localhost:8000/users/');
+  const usersResponse = http.get(`${__ENV.REST_API_URL}/users/`);
   
   check(usersResponse, {
     'users status was 200': (r) => r.status === 200,
@@ -30,7 +30,7 @@ export default function () {
   usersReqDuration.add(usersResponse.timings.duration);
   
   // Запрос на получение списка заказов
-  const ordersResponse = http.get('http://localhost:8000/orders/');
+  const ordersResponse = http.get(`${__ENV.REST_API_URL}/orders/`);
   
   check(ordersResponse, {
     'orders status was 200': (r) => r.status === 200,

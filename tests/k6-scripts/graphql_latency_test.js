@@ -45,7 +45,7 @@ query {
 
 export default function () {
   // Отправляем запрос на получение списка пользователей
-  const usersResponse = http.post('http://localhost:8080/graphql', 
+  const usersResponse = http.post(`${__ENV.GRAPHQL_API_URL}`, 
     JSON.stringify({ query: usersQuery }), 
     {
       headers: { 'Content-Type': 'application/json' },
@@ -61,7 +61,7 @@ export default function () {
   usersReqDuration.add(usersResponse.timings.duration);
   
   // Отправляем запрос на получение списка заказов
-  const ordersResponse = http.post('http://localhost:8080/graphql', 
+  const ordersResponse = http.post(`${__ENV.GRAPHQL_API_URL}`, 
     JSON.stringify({ query: ordersQuery }), 
     {
       headers: { 'Content-Type': 'application/json' },

@@ -21,7 +21,7 @@ export const options = {
 
 export default function () {
   // Запрос на получение списка пользователей
-  const usersResponse = http.get('http://localhost:8000/users/');
+  const usersResponse = http.get(`${__ENV.REST_API_URL}/users/`);
   
   // Проверяем успешность запроса
   const usersSuccess = check(usersResponse, {
@@ -37,7 +37,7 @@ export default function () {
   }
   
   // Запрос на получение списка заказов
-  const ordersResponse = http.get('http://localhost:8000/orders/');
+  const ordersResponse = http.get(`${__ENV.REST_API_URL}/orders/`);
   
   // Проверяем успешность запроса
   const ordersSuccess = check(ordersResponse, {

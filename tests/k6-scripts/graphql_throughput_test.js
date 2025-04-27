@@ -37,7 +37,7 @@ export const options = {
 
 export default function () {
   // Отправляем запрос на получение списка пользователей
-  const usersResponse = http.post('http://localhost:8080/graphql', 
+  const usersResponse = http.post(`${__ENV.GRAPHQL_API_URL}`, 
     JSON.stringify({ query: usersQuery }), 
     {
       headers: { 'Content-Type': 'application/json' },
