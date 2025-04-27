@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package usersorders;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// Пользовательский сервис
+service UserService {
+  // Получить всех пользователей
+  rpc GetUsers(google.protobuf.Empty) returns (Users) {}
+  
+  // Получить пользователя по ID
+  rpc GetUser(UserRequest) returns (User) {}
+  
+  // Создать нового пользователя
+  rpc CreateUser(CreateUserRequest) returns (User) {}
+  
+  // Удалить пользователя
+  rpc DeleteUser(UserRequest) returns (DeleteResponse) {}
+}
+
+// Сервис заказов
+service OrderService {
+  // Получить все заказы
+  rpc GetOrders(google.protobuf.Empty) returns (Orders) {}
+  
+  // Получить заказы по ID пользователя
+  rpc GetOrdersByUser(UserRequest) returns (Orders) {}
+  
+  // Создать новый заказ
+  rpc CreateOrder(CreateOrderRequest) returns (Order) {}
+  
+  // Удалить заказ
+  rpc DeleteOrder(OrderRequest) returns (DeleteResponse) {}
+}
+
+// Запрос на получение пользователя по ID
+message UserRequest {
+  int32 id = 1;
+}
+
+// Запрос на создание пользователя
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+}
+
+// Модель пользователя
+message User {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+// Список пользователей
+message Users {
+  repeated User users = 1;
+}
+
+// Запрос на получение заказа по ID
+message OrderRequest {
+  int32 id = 1;
+}
+
+// Запрос на создание заказа
+message CreateOrderRequest {
+  int32 user_id = 1;
+  string product_name = 2;
+  double price = 3;
+}
+
+// Модель заказа
+message Order {
+  int32 id = 1;
+  int32 user_id = 2;
+  string product_name = 3;
+  double price = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+// Список заказов
+message Orders {
+  repeated Order orders = 1;
+}
+
+// Ответ на удаление
+message DeleteResponse {
+  bool success = 1;
+  string message = 2;
+}
