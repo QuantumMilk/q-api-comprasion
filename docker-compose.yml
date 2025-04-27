@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:14
@@ -73,6 +71,26 @@ services:
     volumes:
       - ./graphql-api/app:/app/app
       - ./common:/app/common
+
+
+  tests:
+    build:
+      context: .
+      dockerfile: ./tests/Dockerfile
+    volumes:
+      - ./tests/k6-scripts:/tests/k6-scripts
+      - ./tests/ghz-tests.sh:/tests/ghz-tests.sh
+      - ./tests/run-tests.sh:/tests/run-tests.sh
+      - ./tests/analyze.py:/tests/analyze.py
+      - ./results:/tests/results
+    depends_on:
+      - rest-api
+      - graphql-api
+      - grpc-api
+    environment:
+      - REST_API_URL=http://rest-api:8000
+      - GRAPHQL_API_URL=http://graphql-api:8080/graphql
+      - GRPC_API_URL=grpc-api:50051
 
 volumes:
   postgres_data:
