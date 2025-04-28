@@ -29,7 +29,7 @@ query {
     id
     name
     email
-    created_at
+    createdAt
   }
 }
 `;

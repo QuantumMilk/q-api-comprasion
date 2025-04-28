@@ -83,6 +83,7 @@ services:
       - ./tests/run-tests.sh:/tests/run-tests.sh
       - ./tests/analyze.py:/tests/analyze.py
       - ./results:/tests/results
+      - ./grpc-api/app/protos:/tests/protos  # Добавляем монтирование proto-файлов
     depends_on:
       - rest-api
       - graphql-api

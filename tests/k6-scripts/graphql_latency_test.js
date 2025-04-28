@@ -25,7 +25,7 @@ query {
     id
     name
     email
-    created_at
+    createdAt
   }
 }
 `;
@@ -35,10 +35,10 @@ const ordersQuery = `
 query {
   orders {
     id
-    user_id
-    product_name
+    userId
+    productName
     price
-    created_at
+    createdAt
   }
 }
 `;
