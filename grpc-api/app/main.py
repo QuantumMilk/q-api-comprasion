@@ -3,11 +3,12 @@ import asyncio
 import logging
 import grpc
 from grpc.aio import server
+from grpc_reflection.v1alpha import reflection
 from common.database.connection import get_db, engine
 from common.models.base import Base
 from app.services.user_service import UserServicer
 from app.services.order_service import OrderServicer
-from app.protos import service_pb2_grpc
+from app.protos import service_pb2_grpc, service_pb2
 
 # Настройка логирования
 logging.basicConfig(
@@ -33,6 +34,12 @@ async def serve():
     service_pb2_grpc.add_UserServiceServicer_to_server(UserServicer(get_db), server_instance)
     service_pb2_grpc.add_OrderServiceServicer_to_server(OrderServicer(get_db), server_instance)
     
+    service_names = (
+        service_pb2.DESCRIPTOR.services_by_name['UserService'].full_name,
+        service_pb2.DESCRIPTOR.services_by_name['OrderService'].full_name,
+    )
+    reflection.enable_server_reflection(service_names, server_instance)
+
     # Определяем адрес для прослушивания
     listen_addr = f'[::]:{PORT}'
     server_instance.add_insecure_port(listen_addr)

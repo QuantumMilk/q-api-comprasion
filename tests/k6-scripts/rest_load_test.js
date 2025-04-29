@@ -6,12 +6,8 @@ import { Counter, Rate } from 'k6/metrics';
 const successRate = new Rate('success_rate');
 const errorCounter = new Counter('errors');
 
+// Убираем многоэтапную конфигурацию, вместо этого используем параметры запуска
 export const options = {
-  stages: [
-    { duration: '30s', target: 1 }, // 1 пользователь в течение 30 секунд
-    { duration: '30s', target: 10 }, // 10 пользователей в течение 30 секунд
-    { duration: '30s', target: 50 }, // 50 пользователей в течение 30 секунд
-  ],
   thresholds: {
     http_req_failed: ['rate<0.01'], // Менее 1% ошибок
     http_req_duration: ['p(95)<1000'], // 95% запросов должны быть быстрее 1000 мс

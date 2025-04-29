@@ -22,7 +22,7 @@ app.include_router(orders_router)
 async def init_db():
     async with engine.begin() as conn:
         # Раскомментируйте следующую строку, чтобы сбросить базу при каждом запуске
-        await conn.run_sync(Base.metadata.drop_all)
+        # await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     logger.info("База данных инициализирована")
 

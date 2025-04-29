@@ -14,6 +14,34 @@ fi
 
 echo "Используется proto-файл: $PROTO_PATH"
 
+# Переменные для хранения идентификаторов тестовых данных
+TEST_USER_IDS=()
+TEST_ORDER_IDS=()
+
+# Функция для удаления тестовых данных
+cleanup_test_data() {
+  echo "Очистка тестовых данных..."
+  
+  # Удаление тестовых заказов
+  for order_id in "${TEST_ORDER_IDS[@]}"; do
+    echo "Удаление заказа с ID: $order_id"
+    grpcurl -plaintext -d "{\"id\": $order_id}" \
+      ${GRPC_API_URL} usersorders.OrderService/DeleteOrder
+  done
+  
+  # Удаление тестовых пользователей
+  for user_id in "${TEST_USER_IDS[@]}"; do
+    echo "Удаление пользователя с ID: $user_id"
+    grpcurl -plaintext -d "{\"id\": $user_id}" \
+      ${GRPC_API_URL} usersorders.UserService/DeleteUser
+  done
+  
+  echo "Очистка тестовых данных завершена."
+}
+
+# Обработка сигналов для гарантированной очистки при прерывании
+trap cleanup_test_data EXIT INT TERM
+
 # Тест задержки (Latency test) для gRPC
 echo "Запуск теста задержки для gRPC..."
 
@@ -99,12 +127,21 @@ if [ -z "$USER_ID" ]; then
   exit 1
 fi
 
+# Добавляем ID пользователя в массив для последующей очистки
+TEST_USER_IDS+=($USER_ID)
+
 echo "Создан пользователь с ID: $USER_ID"
 
 # Теперь создаем заказ для этого пользователя
 echo "Создание тестового заказа..."
-grpcurl -plaintext -d "{\"user_id\": $USER_ID, \"product_name\": \"Test Product\", \"price\": 99.99}" \
-  ${GRPC_API_URL} usersorders.OrderService/CreateOrder
+ORDER_ID=$(grpcurl -plaintext -d "{\"user_id\": $USER_ID, \"product_name\": \"Test Product\", \"price\": 99.99}" \
+  ${GRPC_API_URL} usersorders.OrderService/CreateOrder | grep -o '"id": [0-9]*' | grep -o '[0-9]*')
+
+if [ -n "$ORDER_ID" ]; then
+  # Добавляем ID заказа в массив для последующей очистки
+  TEST_ORDER_IDS+=($ORDER_ID)
+  echo "Создан заказ с ID: $ORDER_ID"
+fi
 
 # Тестируем получение заказов пользователя
 echo "Тестирование получения заказов пользователя..."
@@ -120,4 +157,29 @@ ghz \
 
 echo "Тест получения заказов для gRPC завершен."
 
+# Создаем еще несколько тестовых пользователей и заказов для нагрузочного тестирования
+for i in {1..5}; do
+  echo "Создание дополнительного тестового пользователя $i..."
+  USER_ID=$(grpcurl -plaintext -d "{\"name\": \"Load Test User $i\", \"email\": \"loadtest$i@example.com\"}" \
+    ${GRPC_API_URL} usersorders.UserService/CreateUser | grep -o '"id": [0-9]*' | grep -o '[0-9]*')
+  
+  if [ -n "$USER_ID" ]; then
+    TEST_USER_IDS+=($USER_ID)
+    echo "Создан пользователь с ID: $USER_ID"
+    
+    # Создаем несколько заказов для этого пользователя
+    for j in {1..3}; do
+      ORDER_ID=$(grpcurl -plaintext -d "{\"user_id\": $USER_ID, \"product_name\": \"Load Test Product $j\", \"price\": $((50 + $j * 10))}" \
+        ${GRPC_API_URL} usersorders.OrderService/CreateOrder | grep -o '"id": [0-9]*' | grep -o '[0-9]*')
+      
+      if [ -n "$ORDER_ID" ]; then
+        TEST_ORDER_IDS+=($ORDER_ID)
+        echo "Создан заказ с ID: $ORDER_ID для пользователя $USER_ID"
+      fi
+    done
+  fi
+done
+
 echo "Все тесты gRPC завершены. Результаты сохранены в директории results/grpc/"
+
+# Очистка тестовых данных выполняется автоматически благодаря trap
