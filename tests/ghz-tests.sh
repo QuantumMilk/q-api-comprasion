@@ -65,7 +65,7 @@ ghz \
   --insecure \
   --total 3000 \
   --concurrency 50 \
-  --rps 100 \
+  --qps 100 \
   --duration 30s \
   ${GRPC_API_URL} \
   --format json > results/grpc/throughput_test.json
