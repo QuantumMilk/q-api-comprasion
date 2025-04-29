@@ -18,11 +18,11 @@ jobs:
 
       - name: Build and run tests
         run: |
-          docker-compose up -d db
+          docker compose up -d db
           # Ждем, пока БД будет готова
           sleep 10
           # Запускаем тесты
-          docker-compose up --build tests
+          docker compose up --build tests
           
   deploy:
     needs: test
