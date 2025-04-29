@@ -156,6 +156,22 @@ def load_ghz_json(file_path):
             # Обычный JSON
             result = json.loads(data)
             print(f"Файл содержит обычный JSON, загружен успешно")
+            
+            # Выведем ключевые поля для отладки
+            print(f"Ключи в данных: {list(result.keys())}")
+            if 'average' in result:
+                print(f"Средняя задержка: {result['average']} наносек")
+            if 'fastest' in result:
+                print(f"Минимальная задержка: {result['fastest']} наносек")
+            if 'slowest' in result:
+                print(f"Максимальная задержка: {result['slowest']} наносек")
+            
+            # Посмотрим на latencyDistribution, если он есть
+            if 'latencyDistribution' in result:
+                print(f"Размер latencyDistribution: {len(result['latencyDistribution'])}")
+                for ld in result['latencyDistribution']:
+                    print(f"Процентиль {ld['percentage']}: {ld['latency']} наносек")
+            
             sys.stdout.flush()
             return result
         else:
@@ -190,20 +206,20 @@ def load_ghz_json(file_path):
 def create_mock_ghz_data():
     """Создает синтетические данные для ghz"""
     mock_data = {
-        "average": 0.03,  # 30 ms
-        "fastest": 0.01,  # 10 ms
-        "slowest": 0.1,   # 100 ms
+        "average": 30000000,  # 30 ms в наносекундах
+        "fastest": 10000000,  # 10 ms в наносекундах
+        "slowest": 100000000,   # 100 ms в наносекундах
         "rps": 500,
         "count": 1000,
         "statusCodeDistribution": {},
         "latencyDistribution": [
-            {"percentage": 10, "latency": 0.015},
-            {"percentage": 25, "latency": 0.02},
-            {"percentage": 50, "latency": 0.025},
-            {"percentage": 75, "latency": 0.035},
-            {"percentage": 90, "latency": 0.045},
-            {"percentage": 95, "latency": 0.055},
-            {"percentage": 99, "latency": 0.075}
+            {"percentage": 10, "latency": 15000000},
+            {"percentage": 25, "latency": 20000000},
+            {"percentage": 50, "latency": 25000000},
+            {"percentage": 75, "latency": 35000000},
+            {"percentage": 90, "latency": 45000000},
+            {"percentage": 95, "latency": 55000000},
+            {"percentage": 99, "latency": 75000000}
         ]
     }
     print("Созданы синтетические данные для ghz")
@@ -248,6 +264,31 @@ def analyze_latency_results():
     print("Извлекаю метрики задержки")
     sys.stdout.flush()
     
+    # Получаем перцентили из latencyDistribution gRPC данных
+    grpc_percentiles = {10: 0, 25: 0, 50: 0, 75: 0, 90: 0, 95: 0, 99: 0}
+    
+    if 'latencyDistribution' in grpc_data:
+        for item in grpc_data['latencyDistribution']:
+            percentage = item['percentage']
+            # Преобразование из наносекунд в миллисекунды (1 ms = 1,000,000 ns)
+            latency = item['latency'] / 1000000.0
+            
+            # Ищем ближайший перцентиль
+            if percentage <= 10:
+                grpc_percentiles[10] = latency
+            elif percentage <= 25:
+                grpc_percentiles[25] = latency
+            elif percentage <= 50:
+                grpc_percentiles[50] = latency
+            elif percentage <= 75:
+                grpc_percentiles[75] = latency
+            elif percentage <= 90:
+                grpc_percentiles[90] = latency
+            elif percentage <= 95:
+                grpc_percentiles[95] = latency
+            elif percentage <= 99:
+                grpc_percentiles[99] = latency
+    
     # Извлекаем метрики задержки
     latencies = {
         'REST': {
@@ -269,17 +310,21 @@ def analyze_latency_results():
             'p99': graphql_data['metrics']['http_req_duration'].get('p(99)', 65.0)
         },
         'gRPC': {
-            'avg': grpc_data.get('average', 0.03) * 1000,  # ghz использует секунды, переводим в миллисекунды
-            'min': grpc_data.get('fastest', 0.01) * 1000,
-            'max': grpc_data.get('slowest', 0.1) * 1000,
-            'p50': grpc_data.get('latencyDistribution', [{"percentage": 50, "latency": 0.025}])[2]['latency'] * 1000 if len(grpc_data.get('latencyDistribution', [])) > 2 else 25.0,
-            'p90': grpc_data.get('latencyDistribution', [{"percentage": 90, "latency": 0.045}])[4]['latency'] * 1000 if len(grpc_data.get('latencyDistribution', [])) > 4 else 45.0, 
-            'p95': grpc_data.get('latencyDistribution', [{"percentage": 95, "latency": 0.055}])[5]['latency'] * 1000 if len(grpc_data.get('latencyDistribution', [])) > 5 else 55.0, 
-            'p99': grpc_data.get('latencyDistribution', [{"percentage": 99, "latency": 0.075}])[6]['latency'] * 1000 if len(grpc_data.get('latencyDistribution', [])) > 6 else 75.0
+            # Преобразование из наносекунд в миллисекунды
+            'avg': grpc_data.get('average', 30000000) / 1000000.0,
+            'min': grpc_data.get('fastest', 10000000) / 1000000.0,
+            'max': grpc_data.get('slowest', 100000000) / 1000000.0,
+            'p50': grpc_percentiles[50],
+            'p90': grpc_percentiles[90],
+            'p95': grpc_percentiles[95],
+            'p99': grpc_percentiles[99]
         }
     }
     
     print("Метрики задержки извлечены, создаю таблицу")
+    print(f"REST latencies: {latencies['REST']}")
+    print(f"GraphQL latencies: {latencies['GraphQL']}")
+    print(f"gRPC latencies: {latencies['gRPC']}")
     sys.stdout.flush()
     
     # Создаем таблицу для вывода результатов
@@ -304,6 +349,14 @@ def analyze_latency_results():
     
     print("Создаю визуализацию данных")
     sys.stdout.flush()
+    
+    # Создаем отдельный график для сравнения без искажений от крайних значений
+    # Удаляем экстремально большие значения для более наглядного сравнения
+    adjusted_latencies = {
+        'REST': latencies['REST'].copy(),
+        'GraphQL': latencies['GraphQL'].copy(),
+        'gRPC': latencies['gRPC'].copy()
+    }
     
     # Создаем визуализацию данных
     labels = list(latencies.keys())
@@ -350,7 +403,76 @@ def analyze_latency_results():
     plt.savefig('results/graphs/latency_comparison.png')
     plt.close()
     
-    print("График сохранен в results/graphs/latency_comparison.png")
+    # Если значения для gRPC слишком велики, создаем отдельный график для REST и GraphQL
+    max_rest_graphql = max(
+        max(latencies['REST'].values()),
+        max(latencies['GraphQL'].values())
+    )
+    min_grpc = min(latencies['gRPC'].values())
+    
+    if min_grpc > max_rest_graphql * 10:  # Если gRPC намного больше
+        print("Значения gRPC значительно отличаются, создаю отдельный график для REST и GraphQL")
+        
+        labels = ['REST', 'GraphQL']
+        avg_values = [latencies['REST']['avg'], latencies['GraphQL']['avg']]
+        p95_values = [latencies['REST']['p95'], latencies['GraphQL']['p95']]
+        p99_values = [latencies['REST']['p99'], latencies['GraphQL']['p99']]
+        
+        x = np.arange(len(labels))
+        
+        plt.figure(figsize=(10, 6))
+        ax = plt.axes()
+        
+        bar1 = ax.bar(x - width, avg_values, width, label='Avg', color='skyblue')
+        bar2 = ax.bar(x, p95_values, width, label='P95', color='orange')
+        bar3 = ax.bar(x + width, p99_values, width, label='P99', color='green')
+        
+        ax.set_title('Сравнение задержки REST и GraphQL', fontsize=15)
+        ax.set_xlabel('API', fontsize=12)
+        ax.set_ylabel('Время (мс)', fontsize=12)
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels)
+        ax.legend()
+        
+        add_labels(bar1)
+        add_labels(bar2)
+        add_labels(bar3)
+        
+        plt.tight_layout()
+        plt.savefig('results/graphs/latency_comparison_rest_graphql.png')
+        plt.close()
+        
+        # Отдельный график для gRPC
+        labels = ['gRPC']
+        avg_values = [latencies['gRPC']['avg']]
+        p95_values = [latencies['gRPC']['p95']]
+        p99_values = [latencies['gRPC']['p99']]
+        
+        x = np.arange(len(labels))
+        
+        plt.figure(figsize=(8, 6))
+        ax = plt.axes()
+        
+        bar1 = ax.bar(x - width, avg_values, width, label='Avg', color='skyblue')
+        bar2 = ax.bar(x, p95_values, width, label='P95', color='orange')
+        bar3 = ax.bar(x + width, p99_values, width, label='P99', color='green')
+        
+        ax.set_title('Задержка gRPC API', fontsize=15)
+        ax.set_xlabel('API', fontsize=12)
+        ax.set_ylabel('Время (мс)', fontsize=12)
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels)
+        ax.legend()
+        
+        add_labels(bar1)
+        add_labels(bar2)
+        add_labels(bar3)
+        
+        plt.tight_layout()
+        plt.savefig('results/graphs/latency_comparison_grpc.png')
+        plt.close()
+    
+    print("Графики сохранены")
     sys.stdout.flush()
     
     return latencies

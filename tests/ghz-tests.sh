@@ -65,7 +65,6 @@ ghz \
   --insecure \
   --total 3000 \
   --concurrency 50 \
-  --qps 100 \
   --duration 30s \
   ${GRPC_API_URL} \
   --format json > results/grpc/throughput_test.json
@@ -176,10 +175,10 @@ for i in {1..5}; do
         TEST_ORDER_IDS+=($ORDER_ID)
         echo "Создан заказ с ID: $ORDER_ID для пользователя $USER_ID"
       fi
-    done
-  fi
 done
 
 echo "Все тесты gRPC завершены. Результаты сохранены в директории results/grpc/"
 
 # Очистка тестовых данных выполняется автоматически благодаря trap
+    done
+  fi
