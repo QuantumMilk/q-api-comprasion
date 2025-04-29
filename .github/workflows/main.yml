@@ -34,7 +34,7 @@ jobs:
       - name: Debug test results
         run: |
           echo "Listing generated files in results/ directory:"
-        ls -al results/ || echo "No results directory found!"
+          ls -al results/ || echo "No results directory found!"
 
       - name: Upload test results
         if: success() && steps.run-tests.outputs.exit-code == 0  # Ensure the previous step succeeded
