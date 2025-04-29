@@ -31,7 +31,13 @@ jobs:
           # Запускаем контейнер с тестами
           docker-compose run --rm tests bash -c "cd /tests && chmod +x run-tests.sh && ./run-tests.sh"
       
+      - name: Debug test results
+        run: |
+          echo "Listing generated files in results/ directory:"
+        ls -al results/ || echo "No results directory found!"
+
       - name: Upload test results
+        if: success() && steps.run-tests.outputs.exit-code == 0  # Ensure the previous step succeeded
         uses: actions/upload-artifact@v3
         with:
           name: test-results
