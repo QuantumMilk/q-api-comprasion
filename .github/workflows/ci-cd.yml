@@ -26,7 +26,7 @@ jobs:
           
   deploy:
     needs: test
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' )
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -38,38 +38,39 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
           if_key_exists: replace
-      
+
+
       - name: Deploy to VDS
         run: |
-          # Создаем архив проекта
-          tar -czf project.tar.gz .
-          
+          # Архивируем только файлы, отслеживаемые Git
+          git archive --format=tar.gz -o project.tar.gz HEAD
+    
           # Копируем архив на сервер
           scp project.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
-          
+    
           # Выполняем команды на сервере
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            # Создаем директорию для проекта, если она не существует
-            mkdir -p /var/www/api-project
-            
-            # Распаковываем архив
-            tar -xzf /tmp/project.tar.gz -C /var/www/api-project
-            
-            # Переходим в директорию проекта
-            cd /var/www/api-project
-            
-            # Останавливаем и удаляем контейнеры, если они существуют
-            docker-compose down --remove-orphans
-            
-            # Запускаем сервисы
-            docker-compose up -d db
-            
-            # Ждем, пока БД будет готова
-            sleep 10
-            
-            # Запускаем остальные сервисы
-            docker-compose up -d rest-api graphql-api grpc-api
-            
-            # Удаляем временный архив
-            rm /tmp/project.tar.gz
+          # Создаем директорию для проекта, если она не существует
+          mkdir -p /var/www/api-project
+      
+          # Распаковываем архив
+          tar -xzf /tmp/project.tar.gz -C /var/www/api-project
+      
+          # Переходим в директорию проекта
+          cd /var/www/api-project
+      
+          # Останавливаем и удаляем контейнеры, если они существуют
+          docker-compose down --remove-orphans
+      
+          # Запускаем сервисы
+          docker-compose up -d db
+      
+          # Ждем, пока БД будет готова
+          sleep 10
+      
+          # Запускаем остальные сервисы
+          docker-compose up -d rest-api graphql-api grpc-api
+      
+          # Удаляем временный архив
+          rm /tmp/project.tar.gz
           EOF
