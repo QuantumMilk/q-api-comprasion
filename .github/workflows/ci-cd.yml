@@ -1,0 +1,75 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and run tests
+        run: |
+          docker-compose up -d db
+          # Ждем, пока БД будет готова
+          sleep 10
+          # Запускаем тесты
+          docker-compose up --build tests
+          
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          if_key_exists: replace
+      
+      - name: Deploy to VDS
+        run: |
+          # Создаем архив проекта
+          tar -czf project.tar.gz .
+          
+          # Копируем архив на сервер
+          scp project.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+          
+          # Выполняем команды на сервере
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            # Создаем директорию для проекта, если она не существует
+            mkdir -p /var/www/api-project
+            
+            # Распаковываем архив
+            tar -xzf /tmp/project.tar.gz -C /var/www/api-project
+            
+            # Переходим в директорию проекта
+            cd /var/www/api-project
+            
+            # Останавливаем и удаляем контейнеры, если они существуют
+            docker-compose down --remove-orphans
+            
+            # Запускаем сервисы
+            docker-compose up -d db
+            
+            # Ждем, пока БД будет готова
+            sleep 10
+            
+            # Запускаем остальные сервисы
+            docker-compose up -d rest-api graphql-api grpc-api
+            
+            # Удаляем временный архив
+            rm /tmp/project.tar.gz
+          EOF
