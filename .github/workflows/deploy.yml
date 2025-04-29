@@ -1,0 +1,41 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:  # Позволяет запускать workflow вручную
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+      - name: Add host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy to server
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          # Копируем необходимые файлы на сервер
+          rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'results' ./ $SERVER_USER@$SERVER_HOST:$DEPLOY_PATH
+          
+          # Запускаем скрипт деплоя на сервере
+          ssh $SERVER_USER@$SERVER_HOST "cd $DEPLOY_PATH && \
+            export DB_PASSWORD=$DB_PASSWORD && \
+            export DEPLOY_ENV=production && \
+            chmod +x deploy.sh && \
+            ./deploy.sh"
