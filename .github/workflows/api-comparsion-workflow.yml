@@ -1,0 +1,192 @@
+name: API Comparison CI/CD
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run performance tests'
+        required: false
+        default: 'true'
+        type: boolean
+
+jobs:
+  build:
+    name: Build and validate services
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
+          
+      - name: Lint with flake8
+        run: |
+          # Use flake8 to check for syntax errors and undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-zero treats all errors as warnings
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+  
+  test:
+    name: Run API Comparison Tests
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_tests == 'true' || github.event_name != 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        
+      - name: Build and run services
+        run: |
+          docker-compose build
+          docker-compose up -d db
+          
+          # Wait for database to be ready
+          sleep 30
+          
+          # Start all services
+          docker-compose up -d rest-api grpc-api graphql-api
+          
+          # Wait for services to be ready
+          sleep 30
+          
+      - name: Run tests and analyze results
+        run: |
+          # Run all the tests
+          docker-compose run --rm tests bash -c "cd /tests && chmod +x run-tests.sh && ./run-tests.sh"
+          
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: api-comparison-results
+          path: |
+            results/
+            
+  deploy-report:
+    name: Deploy Performance Report
+    runs-on: ubuntu-latest
+    needs: test
+    if: success() && github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Download test results
+        uses: actions/download-artifact@v3
+        with:
+          name: api-comparison-results
+          path: results
+          
+      - name: Generate HTML report
+        run: |
+          # Install Python and required packages
+          python -m pip install --upgrade pip
+          pip install matplotlib numpy pandas tabulate jinja2
+          
+          # Create HTML report from test results
+          python -c "
+import os
+import json
+import pandas as pd
+from jinja2 import Template
+
+# Create directory for report
+os.makedirs('report', exist_ok=True)
+
+# Copy graph images to report directory
+os.system('cp -r results/graphs report/')
+
+# Read summary.txt if exists
+summary_text = ''
+if os.path.exists('results/summary.txt'):
+    with open('results/summary.txt', 'r') as f:
+        summary_text = f.read()
+
+# Create HTML template
+template_str = '''
+<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>API Comparison Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        h1, h2, h3 { color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .results { margin-top: 20px; }
+        img { max-width: 100%; margin: 20px 0; border: 1px solid #ddd; }
+        pre { background-color: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <div class=\"container\">
+        <h1>API Comparison Performance Report</h1>
+        <p>Generated on: {{ date }}</p>
+        
+        <div class=\"results\">
+            <h2>Summary</h2>
+            <pre>{{ summary }}</pre>
+            
+            <h2>Latency Comparison</h2>
+            <img src=\"graphs/latency_comparison.png\" alt=\"Latency Comparison\">
+            
+            <h2>Throughput Comparison</h2>
+            <img src=\"graphs/throughput_comparison.png\" alt=\"Throughput Comparison\">
+            
+            <h2>Load Comparison</h2>
+            <img src=\"graphs/load_comparison.png\" alt=\"Load Comparison\">
+            
+            <h2>Load Growth Comparison</h2>
+            <img src=\"graphs/load_growth_comparison.png\" alt=\"Load Growth Comparison\">
+            
+            <h2>Summary Comparison</h2>
+            <img src=\"graphs/summary_comparison.png\" alt=\"Summary Comparison\">
+        </div>
+    </div>
+</body>
+</html>
+'''
+
+# Render template
+template = Template(template_str)
+html = template.render(
+    date=pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
+    summary=summary_text
+)
+
+# Write HTML report
+with open('report/index.html', 'w') as f:
+    f.write(html)
+
+print('HTML report generated successfully')
+"
+          
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./report
+          publish_branch: gh-pages
+          full_commit_message: 'Deploy performance report [skip ci]'
