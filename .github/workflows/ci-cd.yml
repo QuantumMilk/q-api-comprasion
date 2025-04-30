@@ -64,13 +64,13 @@ jobs:
           ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
   
           # Создаем директорию для проекта, если она не существует
-          mkdir -p /var/www/api-project
+          mkdir -p /api-project
       
           # Распаковываем архив
-          tar -xzf /tmp/project.tar.gz -C /var/www/api-project
+          tar -xzf /tmp/project.tar.gz -C /api-project
       
           # Переходим в директорию проекта
-          cd /var/www/api-project
+          cd /api-project
       
           # Останавливаем и удаляем контейнеры, если они существуют
           docker compose down --remove-orphans
