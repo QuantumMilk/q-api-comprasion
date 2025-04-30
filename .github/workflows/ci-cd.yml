@@ -73,16 +73,16 @@ jobs:
           cd /var/www/api-project
       
           # Останавливаем и удаляем контейнеры, если они существуют
-          docker-compose down --remove-orphans
+          docker compose down --remove-orphans
       
           # Запускаем сервисы
-          docker-compose up -d db
+          docker compose up -d db
       
           # Ждем, пока БД будет готова
           sleep 10
       
           # Запускаем остальные сервисы
-          docker-compose up -d rest-api graphql-api grpc-api
+          docker compose up -d rest-api graphql-api grpc-api
       
           # Удаляем временный архив
           rm /tmp/project.tar.gz
