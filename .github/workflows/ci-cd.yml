@@ -55,13 +55,14 @@ jobs:
           # Архивируем только файлы, отслеживаемые Git
           git archive --format=tar.gz -o project.tar.gz HEAD
     
-          # Копируем архив на сервер с дополнительной диагностикой
+          # Копируем архив на сервер с дополнительными параметрами для неинтерактивного режима
           echo "Копирование архива на сервер..."
-          scp -v project.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+          scp -o BatchMode=yes -o StrictHostKeyChecking=accept-new project.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
     
           # Выполняем команды на сервере
           echo "Выполнение команд на сервере..."
-          ssh -v ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+  
           # Создаем директорию для проекта, если она не существует
           mkdir -p /var/www/api-project
       
