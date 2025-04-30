@@ -39,17 +39,29 @@ jobs:
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
           if_key_exists: replace
 
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add known hosts
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+
 
       - name: Deploy to VDS
         run: |
           # Архивируем только файлы, отслеживаемые Git
           git archive --format=tar.gz -o project.tar.gz HEAD
     
-          # Копируем архив на сервер
-          scp project.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+          # Копируем архив на сервер с дополнительной диагностикой
+          echo "Копирование архива на сервер..."
+          scp -v project.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
     
           # Выполняем команды на сервере
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "Выполнение команд на сервере..."
+          ssh -v ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           # Создаем директорию для проекта, если она не существует
           mkdir -p /var/www/api-project
       
