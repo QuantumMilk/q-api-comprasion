@@ -3,7 +3,7 @@ from google.protobuf import empty_pb2
 from sqlalchemy.ext.asyncio import AsyncSession
 from common.services import user_service
 from common.services.exceptions import NotFoundError, ValidationError, AlreadyExistsError
-from common.utils.mapper import user_to_proto, datetime_to_timestamp
+from common.utils.grpc_mapper import user_to_proto  # Используем gRPC-специфичный маппер
 from app.protos import service_pb2, service_pb2_grpc
 
 class UserServicer(service_pb2_grpc.UserServiceServicer):

@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
 from common.models import User as UserModel, Order as OrderModel
-from common.utils.mapper import model_to_dict
+from common.utils.mapper import model_to_dict  # Используем только общую часть
 
 @strawberry.type
 class User:
