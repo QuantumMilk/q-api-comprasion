@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from common.database.connection import get_db
 from common.services import order_service  # Используем сервис вместо CRUD
 from common.services.exceptions import NotFoundError, ValidationError
-from app.schemas import OrderCreate, OrderUpdate, OrderResponse
+from app.schemas import OrderCreate, OrderUpdate, OrderResponse, DeleteResponse
 from typing import List
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -44,11 +44,11 @@ async def create_order(order: OrderCreate, db: AsyncSession = Depends(get_db)):
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.delete("/{order_id}")
+@router.delete("/{order_id}", response_model=DeleteResponse)
 async def delete_order(order_id: int, db: AsyncSession = Depends(get_db)):
     """Delete order by ID"""
     try:
         await order_service.delete(db, order_id)
-        return {"success": True, "message": "Order deleted successfully"}
+        return DeleteResponse(success=True, message=f"Order deleted successfully")
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Order not found")
