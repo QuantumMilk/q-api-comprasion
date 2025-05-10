@@ -42,7 +42,9 @@ message UserRequest {
 
 // Запрос на создание пользователя
 message CreateUserRequest {
+  // Full name of the user, cannot be empty
   string name = 1;
+  // Email address in valid format (e.g., user@example.com)
   string email = 2;
 }
 
@@ -66,8 +68,11 @@ message OrderRequest {
 
 // Запрос на создание заказа
 message CreateOrderRequest {
+  // ID of an existing user
   int32 user_id = 1;
+  // Name of the product, cannot be empty
   string product_name = 2;
+  // Price with max 2 decimal places, must be greater than zero
   double price = 3;
 }
 

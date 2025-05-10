@@ -1,3 +1,4 @@
+# graphql-api/app/graphql/types.py
 import strawberry
 from typing import List, Optional
 from datetime import datetime
@@ -40,17 +41,16 @@ class Order:
         
 @strawberry.input
 class UserInput:
-    name: str
-    email: str
+    name: str = strawberry.field(description="User's full name, cannot be empty")
+    email: str = strawberry.field(description="User's email address in valid format (e.g., user@example.com)")
     
 @strawberry.input
 class OrderInput:
-    user_id: int
-    product_name: str
-    price: Decimal
+    user_id: int = strawberry.field(description="ID of an existing user")
+    product_name: str = strawberry.field(description="Name of the product, cannot be empty")
+    price: Decimal = strawberry.field(description="Price with max 2 decimal places, must be greater than zero")
 
-# Новый тип для результата операции удаления
 @strawberry.type
 class DeletionResult:
-    success: bool
-    message: str
+    success: bool = strawberry.field(description="Whether the deletion was successful")
+    message: str = strawberry.field(description="Detailed message about the deletion operation")

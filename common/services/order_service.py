@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from common.database.crud import order_crud, user_crud
 from common.models.models import Order
 from .exceptions import NotFoundError, ValidationError
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 class OrderService:
     """Сервис для работы с заказами"""
@@ -30,27 +30,37 @@ class OrderService:
         return await order_crud.get_by_user_id(db, user_id)
     
     async def create(self, db: AsyncSession, user_id: int, product_name: str, price):
-        """Создать новый заказ"""
-        # Проверяем существование пользователя
+        """Create a new order"""
+        # Check user existence
         user = await user_crud.get_by_id(db, user_id)
         if not user:
             raise NotFoundError("User", user_id)
         
-        # Валидация цены
+        # Price validation
         try:
-            # Преобразуем к Decimal для точности
+            # Convert to Decimal for precision
             decimal_price = Decimal(str(price))
+            
+            # Validate positive price
             if decimal_price <= 0:
                 raise ValidationError("Price must be greater than zero")
             
-            # Ограничиваем до 2 знаков после запятой
-            decimal_price = decimal_price.quantize(Decimal('0.01'))
+            # Limit to 2 decimal places
+            decimal_price = decimal_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            
+            # Check if price has more than 10 significant digits
+            if len(decimal_price.as_tuple().digits) > 10:
+                raise ValidationError("Price is too large, maximum 10 digits allowed")
+                
         except InvalidOperation:
             raise ValidationError(f"Invalid price format: {price}")
         
-        # Валидация названия продукта
-        if not product_name or len(product_name) < 1:
+        # Product name validation
+        if not product_name or not product_name.strip():
             raise ValidationError("Product name cannot be empty")
+        
+        if len(product_name) > 255:
+            raise ValidationError("Product name is too long, maximum 255 characters allowed")
         
         try:
             return await order_crud.create(
@@ -60,9 +70,8 @@ class OrderService:
                 price=decimal_price
             )
         except IntegrityError as e:
-            # Обработка других ошибок базы данных
             raise ValidationError(f"Database error: {str(e)}")
-    
+ 
     async def delete(self, db: AsyncSession, order_id: int):
         """Удалить заказ"""
         # Проверяем существование заказа

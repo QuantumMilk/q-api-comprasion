@@ -9,7 +9,7 @@ class UserService:
     """Сервис для работы с пользователями"""
     
     # Простой regex для валидации email
-    EMAIL_REGEX = re.compile(r'^[\w\.-]+@[\w\.-]+\.\w+$')
+    EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
     
     async def get_all(self, db: AsyncSession):
         """Получить всех пользователей"""
@@ -62,7 +62,11 @@ class UserService:
         return True
     
     def validate_email(self, email: str) -> bool:
-        """Валидация формата email"""
+        """Validate email format"""
         if not email:
             return False
         return bool(self.EMAIL_REGEX.match(email))
+    
+    def validate_name(self, name: str) -> bool:
+        """Validate user name"""
+        return bool(name and name.strip())
