@@ -1,9 +1,9 @@
 import grpc
-from google.protobuf.timestamp_pb2 import Timestamp
 from google.protobuf import empty_pb2
 from sqlalchemy.ext.asyncio import AsyncSession
-from common.services import user_service  # Используем сервис вместо CRUD
+from common.services import user_service
 from common.services.exceptions import NotFoundError, ValidationError, AlreadyExistsError
+from common.utils.mapper import user_to_proto, datetime_to_timestamp
 from app.protos import service_pb2, service_pb2_grpc
 
 class UserServicer(service_pb2_grpc.UserServiceServicer):
@@ -21,15 +21,9 @@ class UserServicer(service_pb2_grpc.UserServiceServicer):
             response = service_pb2.Users()
             for user in users:
                 user_pb = response.users.add()
-                user_pb.id = user.id
-                user_pb.name = user.name
-                user_pb.email = user.email
-                
-                # Convert timestamp
-                if user.created_at:
-                    created_at = Timestamp()
-                    created_at.FromDatetime(user.created_at)
-                    user_pb.created_at.CopyFrom(created_at)
+                # Use the mapper utility
+                proto_user = user_to_proto(user)
+                user_pb.CopyFrom(proto_user)
                     
             return response
     
@@ -38,20 +32,8 @@ class UserServicer(service_pb2_grpc.UserServiceServicer):
         async for db in self.db_factory():
             try:
                 user = await user_service.get_by_id(db, request.id)
-                
-                # Convert to protobuf
-                response = service_pb2.User()
-                response.id = user.id
-                response.name = user.name
-                response.email = user.email
-                
-                # Convert timestamp
-                if user.created_at:
-                    created_at = Timestamp()
-                    created_at.FromDatetime(user.created_at)
-                    response.created_at.CopyFrom(created_at)
-                    
-                return response
+                # Use the mapper utility
+                return user_to_proto(user)
             except NotFoundError:
                 context.set_code(grpc.StatusCode.NOT_FOUND)
                 context.set_details(f"User with ID {request.id} not found")
@@ -62,20 +44,8 @@ class UserServicer(service_pb2_grpc.UserServiceServicer):
         async for db in self.db_factory():
             try:
                 user = await user_service.create(db, name=request.name, email=request.email)
-                
-                # Convert to protobuf
-                response = service_pb2.User()
-                response.id = user.id
-                response.name = user.name
-                response.email = user.email
-                
-                # Convert timestamp
-                if user.created_at:
-                    created_at = Timestamp()
-                    created_at.FromDatetime(user.created_at)
-                    response.created_at.CopyFrom(created_at)
-                    
-                return response
+                # Use the mapper utility
+                return user_to_proto(user)
             except ValidationError as e:
                 context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
                 context.set_details(str(e))
