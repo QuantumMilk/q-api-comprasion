@@ -48,3 +48,9 @@ class OrderInput:
     user_id: int
     product_name: str
     price: Decimal
+
+# Новый тип для результата операции удаления
+@strawberry.type
+class DeletionResult:
+    success: bool
+    message: str

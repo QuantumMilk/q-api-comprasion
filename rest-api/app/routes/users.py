@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from common.database.connection import get_db
-from common.database.crud import user_crud
+from common.services import user_service  
+from common.services.exceptions import NotFoundError, ValidationError, AlreadyExistsError
 from app.schemas import UserCreate, UserUpdate, UserResponse
 from typing import List
 
@@ -9,27 +10,32 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.get("/", response_model=List[UserResponse])
 async def get_users(db: AsyncSession = Depends(get_db)):
-    """Получение всех пользователей"""
-    users = await user_crud.get_all(db)
-    return [user for user in users]
+    """Get all users"""
+    return await user_service.get_all(db)
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
-    """Получение пользователя по ID"""
-    user = await user_crud.get_by_id(db, user_id)
-    if not user:
+    """Get user by ID"""
+    try:
+        return await user_service.get_by_id(db, user_id)
+    except NotFoundError:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
 
 @router.post("/", response_model=UserResponse)
 async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    """Создание нового пользователя"""
-    return await user_crud.create(db, name=user.name, email=user.email)
+    """Create a new user"""
+    try:
+        return await user_service.create(db, name=user.name, email=user.email)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except AlreadyExistsError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{user_id}")
 async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
-    """Удаление пользователя"""
-    success = await user_crud.delete(db, user_id)
-    if not success:
+    """Delete user by ID"""
+    try:
+        await user_service.delete(db, user_id)
+        return {"success": True, "message": "User deleted successfully"}
+    except NotFoundError:
         raise HTTPException(status_code=404, detail="User not found")
-    return {"message": "User deleted successfully"}
