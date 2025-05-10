@@ -22,4 +22,12 @@ sed -i 's/import service_pb2/from . import service_pb2/g' /app/app/protos/servic
 touch /app/app/protos/__init__.py
 
 echo "Инициализация завершена, запуск сервера..."
-python -m app.main
+
+# Запуск в зависимости от режима
+if [ "$ENVIRONMENT" = "development" ]; then
+    # В режиме разработки можно добавить дополнительные опции отладки
+    python -m app.main
+else
+    # В продакшен режиме запускаем оптимизированный запуск
+    python -O -m app.main
+fi

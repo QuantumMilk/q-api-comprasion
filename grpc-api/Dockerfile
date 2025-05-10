@@ -12,8 +12,15 @@ COPY ./grpc-api/client.py /app/client.py
 COPY ./grpc-api/entrypoint.sh /app/entrypoint.sh
 COPY ./common /app/common
 
+# Создаем директорию для логов
+RUN mkdir -p /app/logs
+
 # Делаем скрипт исполняемым
 RUN chmod +x /app/entrypoint.sh
+
+# Аргумент для переключения режима запуска
+ARG ENVIRONMENT=development
+ENV ENVIRONMENT=${ENVIRONMENT}
 
 # Порт для gRPC
 EXPOSE 50051

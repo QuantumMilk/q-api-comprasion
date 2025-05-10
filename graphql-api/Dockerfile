@@ -10,8 +10,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./graphql-api/app /app/app
 COPY ./common /app/common
 
-# Порт для GraphQL API
-EXPOSE 8080
+# Создаем директорию для логов
+RUN mkdir -p /app/logs
 
-# Запуск приложения
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+# Аргумент для переключения режима запуска
+ARG ENVIRONMENT=development
+
+# Запуск приложения в зависимости от режима
+CMD if [ "$ENVIRONMENT" = "development" ]; then \
+      uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload; \
+    else \
+      uvicorn app.main:app --host 0.0.0.0 --port 8080; \
+    fi
