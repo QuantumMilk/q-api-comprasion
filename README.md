@@ -49,3 +49,27 @@ chmod +x run-tests.sh
 bashdocker-compose run --rm tests bash
 cd /tests
 k6 run k6-scripts/rest_latency_test.js --out json=results/rest/latency_test.json
+
+
+## Логирование
+
+В проекте настроено структурированное логирование различных событий:
+
+- Запросы API (HTTP и gRPC)
+- Бизнес-события (создание/удаление пользователей и заказов)
+- Ошибки и исключения
+
+### Просмотр логов
+
+Для просмотра логов можно использовать скрипт:
+
+```bash
+./view-logs.sh rest        # Просмотр логов REST API
+./view-logs.sh graphql     # Просмотр логов GraphQL API
+./view-logs.sh grpc        # Просмотр логов gRPC API
+./view-logs.sh all         # Просмотр всех логов
+
+# Опции
+./view-logs.sh rest -f                 # Следить за логами в реальном времени
+./view-logs.sh graphql -n 100          # Показать последние 100 строк
+./view-logs.sh grpc -s business        # Показать логи бизнес-событий gRPC API

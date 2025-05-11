@@ -1,6 +1,5 @@
 import os
 import asyncio
-import logging
 import grpc
 from grpc.aio import server
 from grpc_reflection.v1alpha import reflection
@@ -8,27 +7,12 @@ from common.database.connection import get_db, engine
 from common.models.base import Base
 from app.services.user_service import UserServicer
 from app.services.order_service import OrderServicer
+from app.logging_interceptor import LoggingInterceptor
 from app.protos import service_pb2_grpc, service_pb2
-from logging.handlers import RotatingFileHandler
-
-# Создание директории для логов, если она не существует
-os.makedirs('/app/logs', exist_ok=True)
+from common.utils.logging import get_logger
 
 # Настройка логирования
-log_level = os.getenv('LOG_LEVEL', 'INFO')
-logging.basicConfig(
-    level=getattr(logging, log_level),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),  # Вывод в консоль
-        RotatingFileHandler(
-            '/app/logs/app.log',
-            maxBytes=10 * 1024 * 1024,  # 10 MB
-            backupCount=5                # 5 резервных копий
-        )
-    ]
-)
-logger = logging.getLogger(__name__)
+logger = get_logger("grpc_api", "grpc_api.log")
 
 # Определение порта для прослушивания
 PORT = os.getenv("PORT", "50051")
@@ -36,12 +20,13 @@ PORT = os.getenv("PORT", "50051")
 async def serve():
     """Запуск gRPC сервера"""
     # Создаем таблицы в базе данных
+    logger.info("Initializing database...")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        logger.info("Database initialized")
+    logger.info("Database initialized")
     
-    # Создаем gRPC сервер
-    server_instance = server()
+    # Создаем gRPC сервер с интерцептором для логирования
+    server_instance = server(interceptors=[LoggingInterceptor()])
     
     # Добавляем сервисы
     service_pb2_grpc.add_UserServiceServicer_to_server(UserServicer(get_db), server_instance)
@@ -67,6 +52,9 @@ async def serve():
         await server_instance.wait_for_termination()
     except KeyboardInterrupt:
         logger.info("Received interruption signal, shutting down...")
+        await server_instance.stop(0)
+    except Exception as e:
+        logger.error(f"Server error: {str(e)}", exc_info=e)
         await server_instance.stop(0)
 
 if __name__ == '__main__':
