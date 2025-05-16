@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Установка зависимостей
+COPY ./rest-api/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копирование кода приложения
+COPY ./rest-api/app /app/app
+COPY ./common /app/common
+COPY ./rest-api/ssl_entrypoint.sh /app/ssl_entrypoint.sh
+
+# Делаем скрипт исполняемым
+RUN chmod +x /app/ssl_entrypoint.sh
+
+# Порт для REST API с SSL
+EXPOSE 8443
+
+# Запуск через SSL entrypoint скрипт
+CMD ["/app/ssl_entrypoint.sh"]

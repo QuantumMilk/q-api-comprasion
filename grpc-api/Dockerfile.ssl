@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Установка зависимостей
+COPY ./grpc-api/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копирование кода приложения
+COPY ./grpc-api/app /app/app
+COPY ./grpc-api/client-ssl.py /app/client-ssl.py
+COPY ./grpc-api/ssl_entrypoint.sh /app/ssl_entrypoint.sh
+COPY ./common /app/common
+
+# Делаем скрипт исполняемым
+RUN chmod +x /app/ssl_entrypoint.sh
+
+# Порт для gRPC с SSL
+EXPOSE 50052
+
+# Запуск через SSL entrypoint скрипт
+CMD ["/app/ssl_entrypoint.sh"]

@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Установка зависимостей
+COPY ./graphql-api/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копирование кода приложения
+COPY ./graphql-api/app /app/app
+COPY ./common /app/common
+COPY ./graphql-api/ssl_entrypoint.sh /app/ssl_entrypoint.sh
+
+# Делаем скрипт исполняемым
+RUN chmod +x /app/ssl_entrypoint.sh
+
+# Порт для GraphQL API с SSL
+EXPOSE 8444
+
+# Запуск через SSL entrypoint скрипт
+CMD ["/app/ssl_entrypoint.sh"]
