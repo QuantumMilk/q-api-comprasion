@@ -4,6 +4,7 @@ from google.protobuf import empty_pb2
 from sqlalchemy.ext.asyncio import AsyncSession
 from common.database.crud import user_crud
 from app.protos import service_pb2, service_pb2_grpc
+import traceback
 
 class UserServicer(service_pb2_grpc.UserServiceServicer):
     """Реализация сервиса пользователей"""
@@ -77,6 +78,8 @@ class UserServicer(service_pb2_grpc.UserServiceServicer):
                     
                 return response
             except Exception as e:
+                print("❌ Ошибка при создании пользователя:", str(e))
+                traceback.print_exc()
                 context.set_code(grpc.StatusCode.INTERNAL)
                 context.set_details(f"Ошибка при создании пользователя: {str(e)}")
                 return service_pb2.User()
