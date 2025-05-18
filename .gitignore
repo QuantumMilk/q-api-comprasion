@@ -53,6 +53,7 @@ cover/
 results/
 results*
 *old
+certs
 
 # Translations
 *.mo

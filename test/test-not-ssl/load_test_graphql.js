@@ -8,10 +8,9 @@ export let throughput = new Counter('graphql_throughput');
 export let errorRate = new Rate('graphql_errors');
 export let overfetchBytes = new Trend('graphql_overfetching_bytes');
 
-const BASE_URL = 'https://127.0.0.1:8444/graphql';
+const BASE_URL = 'http://127.0.0.1:8080/graphql';
 
 export let options = {
-    insecureSkipTLSVerify: true,
     scenarios: {
         latency_test: {
             executor: 'per-vu-iterations',

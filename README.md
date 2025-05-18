@@ -1,6 +1,6 @@
 # Сравнение API
 
-docker-compose run --rm tests bash
+docker compose -f 
 
 # Внутри контейнера
 cd /tests

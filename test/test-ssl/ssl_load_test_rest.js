@@ -3,20 +3,47 @@ import { check, group, sleep } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
 
 // Метрики
-export let latency = new Trend('latency');
+export let latency = new Trend('latency', true); // enable percentiles
 export let throughput = new Counter('throughput');
 export let errorRate = new Rate('errors');
 export let overfetchBytes = new Trend('overfetching_bytes');
+export let ttfb = new Trend('ttfb', true); // enable percentiles
+
 
 const BASE_URL = 'https://127.0.0.1:8443';
 
 export let options = {
-    vus: 20,
-    duration: '30s',
     insecureSkipTLSVerify: true,
+    scenarios: {
+        latency_test: {
+            executor: 'per-vu-iterations',
+            vus: 1,
+            iterations: 100,
+            exec: 'latencyScenario',
+        },
+        throughput_test: {
+            executor: 'constant-arrival-rate',
+            rate: 100,
+            timeUnit: '1s',
+            duration: '30s',
+            preAllocatedVUs: 20,
+            maxVUs: 50,
+            exec: 'throughputScenario',
+        },
+        load_test: {
+            executor: 'ramping-vus',
+            startVUs: 0,
+            stages: [
+                { duration: '30s', target: 10 },
+                { duration: '30s', target: 25 },
+                { duration: '30s', target: 50 },
+            ],
+            exec: 'loadScenario',
+        },
+    },
 };
 
-// Вспомогательная функция для оценки overfetching
+// Overfetching helper
 function estimateOverfetch(response, expectedKeys) {
     try {
         const json = response.json();
@@ -32,16 +59,15 @@ function estimateOverfetch(response, expectedKeys) {
     }
 }
 
-// Глобальные переменные
-let userId = null;
-let orderId = null;
+// Shared logic
+function runCRUD() {
+    let userId = null;
+    let orderId = null;
 
-export default function () {
-    // ➤ POST /users
     group('POST /users', () => {
         const payload = JSON.stringify({
             name: `TestUser_${__VU}_${__ITER}`,
-            email: `user${Math.floor(Math.random() * 10000)}@test-restapi.com`,
+            email: `user${Math.floor(Math.random() * 10000)}@testrestapi.com`,
         });
 
         const res = http.post(`${BASE_URL}/users/`, payload, {
@@ -56,26 +82,22 @@ export default function () {
         if (ok) userId = res.json().id;
 
         latency.add(res.timings.duration);
+        ttfb.add(res.timings.waiting);
         throughput.add(1);
         errorRate.add(!ok);
         overfetchBytes.add(estimateOverfetch(res, ['id', 'name', 'email']));
     });
 
-    // ➤ GET /users
     group('GET /users', () => {
         const res = http.get(`${BASE_URL}/users/`);
-
-        const ok = check(res, {
-            'GET /users status 200': (r) => r.status === 200,
-        });
-
+        const ok = check(res, { 'GET /users status 200': (r) => r.status === 200 });
         latency.add(res.timings.duration);
+        ttfb.add(res.timings.waiting);
         throughput.add(1);
         errorRate.add(!ok);
         overfetchBytes.add(estimateOverfetch(res, ['id', 'name', 'email']));
     });
 
-    // ➤ POST /orders
     group('POST /orders', () => {
         if (userId === null) return;
 
@@ -97,70 +119,58 @@ export default function () {
         if (ok) orderId = res.json().id;
 
         latency.add(res.timings.duration);
+        ttfb.add(res.timings.waiting);
         throughput.add(1);
         errorRate.add(!ok);
         overfetchBytes.add(estimateOverfetch(res, ['id', 'user_id', 'product_name', 'price']));
     });
 
-    // ➤ GET /orders
-    group('GET /orders', () => {
-        const res = http.get(`${BASE_URL}/orders/`);
-
-        const ok = check(res, {
-            'GET /orders status 200': (r) => r.status === 200,
-        });
-
-        latency.add(res.timings.duration);
-        throughput.add(1);
-        errorRate.add(!ok);
-        overfetchBytes.add(estimateOverfetch(res, ['id', 'user_id', 'product_name', 'price']));
-    });
-
-    // ➤ GET /orders/user/{user_id}
     group('GET /orders/user/{user_id}', () => {
         if (userId === null) return;
 
         const res = http.get(`${BASE_URL}/orders/user/${userId}`);
-
-        const ok = check(res, {
-            'GET /orders/user/{id} status 200': (r) => r.status === 200,
-        });
-
+        const ok = check(res, { 'GET /orders/user/{id} status 200': (r) => r.status === 200 });
         latency.add(res.timings.duration);
+        ttfb.add(res.timings.waiting);
         throughput.add(1);
         errorRate.add(!ok);
-        overfetchBytes.add(estimateOverfetch(res, ['id', 'user_id', 'product_name', 'price']));
     });
 
-    // ➤ DELETE /orders/{order_id}
     group('DELETE /orders/{order_id}', () => {
         if (orderId === null) return;
 
         const res = http.del(`${BASE_URL}/orders/${orderId}`);
-
-        const ok = check(res, {
-            'DELETE /orders/{id} status 200': (r) => r.status === 200,
-        });
-
+        const ok = check(res, { 'DELETE /orders status 200': (r) => r.status === 200 });
         latency.add(res.timings.duration);
+        ttfb.add(res.timings.waiting);
         throughput.add(1);
         errorRate.add(!ok);
     });
 
-    // ➤ DELETE /users/{user_id}
     group('DELETE /users/{user_id}', () => {
         if (userId === null) return;
 
         const res = http.del(`${BASE_URL}/users/${userId}`);
-
-        const ok = check(res, {
-            'DELETE /users/{id} status 200': (r) => r.status === 200,
-        });
-
+        const ok = check(res, { 'DELETE /users status 200': (r) => r.status === 200 });
         latency.add(res.timings.duration);
+        ttfb.add(res.timings.waiting);
         throughput.add(1);
         errorRate.add(!ok);
     });
+}
 
+// Сценарии
+export function latencyScenario() {
+    runCRUD();
+    sleep(1);
+}
+
+export function throughputScenario() {
+    runCRUD();
+    sleep(0.5);
+}
+
+export function loadScenario() {
+    runCRUD();
     sleep(1);
 }
