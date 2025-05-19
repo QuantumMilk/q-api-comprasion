@@ -11,7 +11,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="REST API для сравнительного анализа")
+app = FastAPI(title="REST API для сравнительного анализа", redirect_slashes=False)
 
 # Подключаем маршруты
 app.include_router(users_router)

@@ -51,6 +51,9 @@ coverage.xml
 .pytest_cache/
 cover/
 results/
+results*
+*old
+certs
 
 # Translations
 *.mo
@@ -173,3 +176,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+
+cert

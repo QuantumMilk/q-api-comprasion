@@ -15,12 +15,12 @@ services:
       timeout: 5s
       retries: 5
 
-  rest-api:
+  rest-api-ssl:
     build:
       context: .
-      dockerfile: ./rest-api/Dockerfile
+      dockerfile: ./rest-api/Dockerfile.ssl
     ports:
-      - "8000:8000"
+      - "8443:8443"
     depends_on:
       db:
         condition: service_healthy
@@ -30,16 +30,20 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
+      SSL_ENABLED: "true"
+      SSL_CERT_PATH: "/app/certs/rest-api.crt"
+      SSL_KEY_PATH: "/app/certs/rest-api.key"
     volumes:
       - ./rest-api/app:/app/app
       - ./common:/app/common
+      - ./certs:/app/certs
 
-  grpc-api:
+  graphql-api-ssl:
     build:
       context: .
-      dockerfile: ./grpc-api/Dockerfile
+      dockerfile: ./graphql-api/Dockerfile.ssl
     ports:
-      - "50051:50051"
+      - "8444:8444"
     depends_on:
       db:
         condition: service_healthy
@@ -49,49 +53,36 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
-    volumes:
-      - ./grpc-api/app:/app/app
-      - ./common:/app/common
-
-  graphql-api:
-    build:
-      context: .
-      dockerfile: ./graphql-api/Dockerfile
-    ports:
-      - "8080:8080"
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
+      SSL_ENABLED: "true"
+      SSL_CERT_PATH: "/app/certs/graphql-api.crt"
+      SSL_KEY_PATH: "/app/certs/graphql-api.key"
     volumes:
       - ./graphql-api/app:/app/app
       - ./common:/app/common
+      - ./certs:/app/certs
 
-
-  # tests:
-  #   build:
-  #     context: .
-  #     dockerfile: ./tests/Dockerfile
-  #   volumes:
-  #     - ./tests/k6-scripts:/tests/k6-scripts
-  #     - ./tests/ghz-tests.sh:/tests/ghz-tests.sh
-  #     - ./tests/run-tests.sh:/tests/run-tests.sh
-  #     - ./tests/analyze.py:/tests/analyze.py
-  #     - ./results:/tests/results
-  #     - ./grpc-api/app/protos:/tests/protos  # Добавляем монтирование proto-файлов
-  #   depends_on:
-  #     - rest-api
-  #     - graphql-api
-  #     - grpc-api
-  #   environment:
-  #     - REST_API_URL=http://rest-api:8000
-  #     - GRAPHQL_API_URL=http://graphql-api:8080/graphql
-  #     - GRPC_API_URL=grpc-api:50051
+  grpc-api-ssl:
+    build:
+      context: .
+      dockerfile: ./grpc-api/Dockerfile.ssl
+    ports:
+      - "50052:50052"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      SSL_ENABLED: "true"
+      SSL_CERT_PATH: "/app/certs/grpc-api.pem"  # Полный путь к комбинированному файлу
+      PORT: "50052"
+    volumes:
+      - ./grpc-api/app:/app/app
+      - ./common:/app/common
+      - ./certs:/app/certs
 
 volumes:
   postgres_data:
