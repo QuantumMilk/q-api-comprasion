@@ -48,7 +48,7 @@ function runGRPC() {
 
     const user = {
         name: `TestUser_${__VU}_${__ITER}`,
-        email: `user${Math.floor(Math.random() * 100000)}@testgrpc.com`,
+        email: `user${Math.floor(Math.random() * 1000000)}@testgrpc.com`,
     };
 
     const t0 = Date.now();

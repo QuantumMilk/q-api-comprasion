@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ROOT_DIR=$(pwd)
-OUT_DIR="$ROOT_DIR/results"
-ITERATIONS=10
+OUT_DIR="$ROOT_DIR/results-new"
+ITERATIONS=5
 
 declare -A TESTS=(
   [rest_no_ssl]="test/test-not-ssl/load_test_rest.js"
@@ -10,7 +10,7 @@ declare -A TESTS=(
   [graphql_no_ssl]="test/test-not-ssl/load_test_graphql.js"
   [graphql_ssl]="test/test-ssl/ssl_load_test_graphql.js"
   [grpc_ssl]="test/test-ssl/ssl_load_test_grpc.js"
-  #[grpc_no_ssl]="test/test-not-ssl/load_test_grpc.js"
+  [grpc_no_ssl]="test/test-not-ssl/load_test_grpc.js"
 )
 
 for name in "${!TESTS[@]}"; do

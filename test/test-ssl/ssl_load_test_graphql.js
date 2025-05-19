@@ -60,7 +60,7 @@ function runGraphQL() {
     group('GraphQL - createUser', () => {
         const query = `
             mutation {
-                createUser(input: {name: "TestUser_${__VU}_${__ITER}", email: "user${Math.floor(Math.random() * 10000)}@testgraphql.com"}) {
+                createUser(input: {name: "TestUser_${__VU}_${__ITER}", email: "user${Math.floor(Math.random() * 1000000)}@testgraphqlssl.com"}) {
                     id
                     name
                     email

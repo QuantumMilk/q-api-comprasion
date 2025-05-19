@@ -67,7 +67,7 @@ function runCRUD() {
     group('POST /users', () => {
         const payload = JSON.stringify({
             name: `TestUser_${__VU}_${__ITER}`,
-            email: `user${Math.floor(Math.random() * 10000)}@testrestapi.com`,
+            email: `user${Math.floor(Math.random() * 1000000)}@testrestapissl.com`,
         });
 
         const res = http.post(`${BASE_URL}/users/`, payload, {
